@@ -10,7 +10,7 @@ upstream (rounding, metadata), the fixtures follow it while the probabilities st
 import argparse, json, random
 import torch
 from . import KEV_ROOT  # noqa: F401
-from .pin import pin
+from .pin import pin, source
 from kev.api import SystemOneRequest, to_record, to_answers
 from kev.checkpoint import LoadOptions, load
 from kev.model import encode, rows_of
@@ -85,7 +85,7 @@ def main():
     a.run = pin(a.run)
     print(f"run: {a.run}")
     # raw logits: ONNX parity is against T=1. Serving applies the checkpoint temperature after the pointer head.
-    tok, m = load(a.run, "cpu", LoadOptions(temperature=1.0))
+    tok, m = load(source(a.run), "cpu", LoadOptions(temperature=1.0))
     fixtures = []
     for fx in HAND + load_dev(a.suite, a.n, a.seed):
         req = SystemOneRequest.model_validate(fx["request"])

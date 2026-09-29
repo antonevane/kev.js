@@ -16,5 +16,19 @@ def pin(run: str) -> str:
     return f"{repo}@{HfApi().model_info(repo, revision=rev or None).sha}"
 
 
+SOURCE_ENV = "KEV_RUN_SOURCE"
+
+
+def source(run: str) -> str:
+    """The files of a pinned run: KEV_RUN_SOURCE (a local, checksum-verified copy of exactly that commit, e.g. a
+    GitHub release tarball) when set, else the Hub snapshot. The pinned `run` string stays the provenance either way."""
+    local = os.environ.get(SOURCE_ENV)
+    if local:
+        if not os.path.isfile(f"{local}/head.pt"): raise SystemExit(f"{SOURCE_ENV}={local} has no head.pt")
+        return local
+    from kev.checkpoint import resolve_run
+    return resolve_run(run)
+
+
 if __name__ == "__main__":
     print(pin(sys.argv[1]))

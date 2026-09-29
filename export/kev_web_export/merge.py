@@ -7,9 +7,9 @@ import argparse, json, os, shutil
 import torch
 from safetensors.torch import load_file, save_file
 from . import KEV_ROOT  # noqa: F401  (puts kev on sys.path)
-from kev.checkpoint import load, resolve_run
+from kev.checkpoint import load
 from kev.model import SPECIAL, MAX_STATE, MAX_BRANCH
-from .pin import pin
+from .pin import pin, source
 
 
 def main():
@@ -19,7 +19,7 @@ def main():
     a = ap.parse_args()
     a.run = pin(a.run)                                          # exact commit: the Hub ids are republished in place
     print(f"run: {a.run}")
-    run = resolve_run(a.run)
+    run = source(a.run)
     meta = torch.load(f"{run}/head.pt", map_location="cpu")
     tok, m = load(run, "cpu")                                  # fp32, LoRA merged (kev.checkpoint.load)
     merged = {f"model.language_model.{k}": v.detach().contiguous() for k, v in m.lm.state_dict().items()}

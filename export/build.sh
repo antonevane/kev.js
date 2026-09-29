@@ -28,7 +28,7 @@ for v in $variants; do
   # the builder can abort in process teardown on macOS (libc++ "recursive_mutex lock failed") after everything is
   # written, so success is judged by genai_config.json, which it writes last
   rm -rf "$dir/onnx-$v"
-  uv run python -m onnxruntime_genai.models.builder -i "$dir/merged" -o "$dir/onnx-$v" -c build/cache "${args[@]}" > "$dir/onnx-$v.log" 2>&1 || true
+  uv run python -m onnxruntime_genai.models.builder -i "$dir/merged" -o "$dir/onnx-$v" -c "${KEV_BUILD_DIR:-build}/cache" "${args[@]}" > "$dir/onnx-$v.log" 2>&1 || true
   [ -f "$dir/onnx-$v/genai_config.json" ] || { tr '\r' '\n' < "$dir/onnx-$v.log" | tail -20; exit 1; }
   du -sh "$dir/onnx-$v/model.onnx.data"
 done

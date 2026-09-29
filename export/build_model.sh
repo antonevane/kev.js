@@ -6,11 +6,17 @@
 # Steps: pin -> merge (LoRA folded in fp32) -> int8 WebGPU build(s) -> 32 MB shards -> fp32 ONNX reference ->
 # PyTorch fixtures -> parity -> 300-record reference set -> package. Intermediates are deleted once used: a 9B build
 # peaks near 85 GB. Every artefact records the pinned run, and package.py refuses fixtures from another commit.
+#
+# Environment (all optional):
+#   KEV_BUILD_DIR     where the intermediates go (default: build, next to this script), e.g. a roomier external disk
+#   KEV_WEB_VARIANTS  the WebGPU variants to build, space-separated from: q8f32 q8 (default: per model, below)
+#   KEV_RUN_SOURCE    a local, checksum-verified copy of the pinned run's files (kev_web_export/pin.py source())
 set -euo pipefail
 cd "$(dirname "$0")"
 name=$1
 run=$(uv run python -m kev_web_export.pin "${2:-jaredpalmer/$name}" 2>/dev/null | tail -1)
-out=build/$name
+build_dir=${KEV_BUILD_DIR:-build}
+out=$build_dir/$name
 log() { echo "[$name] $*"; }
 log "pinned $run"
 
@@ -19,6 +25,12 @@ case $name in
   *)        web=(q8f32)    fixtures=20 keep_fp32=0 ;;
 esac
 src() { case $1 in q8f32) echo q8f32-webgpu ;; q8) echo q8f16-webgpu ;; esac; }   # bash 3.2: no associative arrays
+if [ -n "${KEV_WEB_VARIANTS:-}" ]; then
+  read -r -a web <<< "$KEV_WEB_VARIANTS"
+  for v in "${web[@]}"; do
+    [ -n "$(src "$v")" ] || { echo "[$name] KEV_WEB_VARIANTS: unknown variant '$v' (known: q8f32 q8)" >&2; exit 2; }
+  done
+fi
 
 log "merge"
 rm -rf "$out"
